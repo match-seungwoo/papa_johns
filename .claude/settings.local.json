@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(which ruff:*)",
+      "Bash(uv venv:*)",
+      "Bash(which uv:*)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && uv venv --python 3.13 2>&1)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && uv pip install -e \".[dev]\" 2>&1)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && .venv/bin/ruff check . 2>&1)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && .venv/bin/ruff check . --fix 2>&1)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && .venv/bin/mypy app/ tests/ 2>&1)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\" && .venv/bin/pytest -v 2>&1)",
+      "Bash(find /Users/sson/Documents -maxdepth 5 -name \"2026-03-11*\" 2>/dev/null; find /Users/sson/Documents -maxdepth 5 -type d -name \"*03*\" 2>/dev/null | head -10)"
+    ]
+  }
+}

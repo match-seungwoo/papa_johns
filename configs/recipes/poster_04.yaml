@@ -1,0 +1,7 @@
+template_id: poster_04
+name: "Watercolor Art"
+ad_image: images/4.png
+prompt_template: "Style transfer: recreate this advertisement poster featuring a {subject_category}, preserving the original composition, color palette, and visual aesthetic"
+vendors:
+  - openai
+  - bfl

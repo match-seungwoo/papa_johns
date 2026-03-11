@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+import asyncio
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class StorageAdapter(ABC):
+    @abstractmethod
+    async def upload_input(self, job_id: str, data: bytes, content_type: str) -> str:
+        """Upload input image. Returns S3 key."""
+        ...
+
+    @abstractmethod
+    async def upload_result(self, job_id: str, data: bytes, vendor: str) -> str:
+        """Upload generated poster. Returns S3 key."""
+        ...
+
+    @abstractmethod
+    def get_url(self, key: str) -> str:
+        """Return public URL for the given S3 key."""
+        ...
+
+
+class S3Storage(StorageAdapter):
+    def __init__(self, bucket: str, region: str = "us-east-1") -> None:
+        import boto3  # deferred to avoid import cost at module load
+
+        self._bucket = bucket
+        self._region = region
+        self._client: Any = boto3.client("s3", region_name=region)
+
+    async def upload_input(self, job_id: str, data: bytes, content_type: str) -> str:
+        key = f"uploads/{job_id}/input.jpg"
+        await asyncio.to_thread(
+            self._client.put_object,
+            Bucket=self._bucket,
+            Key=key,
+            Body=data,
+            ContentType=content_type,
+        )
+        return key
+
+    async def upload_result(self, job_id: str, data: bytes, vendor: str) -> str:
+        key = f"generated/{job_id}/poster_{vendor}.png"
+        await asyncio.to_thread(
+            self._client.put_object,
+            Bucket=self._bucket,
+            Key=key,
+            Body=data,
+            ContentType="image/png",
+        )
+        return key
+
+    def get_url(self, key: str) -> str:
+        return f"https://{self._bucket}.s3.{self._region}.amazonaws.com/{key}"

@@ -1,0 +1,7 @@
+template_id: poster_06
+name: "Pop Art"
+ad_image: images/6.png
+prompt_template: "Style transfer: recreate this advertisement poster featuring a {subject_category}, preserving the original composition, color palette, and visual aesthetic"
+vendors:
+  - openai
+  - bfl
