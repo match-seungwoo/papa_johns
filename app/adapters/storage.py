@@ -21,6 +21,11 @@ class StorageAdapter(ABC):
         """Return public URL for the given S3 key."""
         ...
 
+    @abstractmethod
+    async def download(self, key: str) -> bytes:
+        """Download object by S3 key. Returns raw bytes."""
+        ...
+
 
 class S3Storage(StorageAdapter):
     def __init__(self, bucket: str, region: str = "us-east-1") -> None:
@@ -54,3 +59,11 @@ class S3Storage(StorageAdapter):
 
     def get_url(self, key: str) -> str:
         return f"https://{self._bucket}.s3.{self._region}.amazonaws.com/{key}"
+
+    async def download(self, key: str) -> bytes:
+        def _do() -> bytes:
+            resp: dict[str, Any] = self._client.get_object(Bucket=self._bucket, Key=key)
+            data: bytes = resp["Body"].read()
+            return data
+
+        return await asyncio.to_thread(_do)

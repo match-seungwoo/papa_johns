@@ -22,7 +22,12 @@ async def main() -> None:
     job_service = JobService(storage=storage, queue=queue)
 
     adapters = {
-        "openai": OpenAIImageAdapter(api_key=settings.openai_api_key),
+        "openai": OpenAIImageAdapter(
+            api_key=settings.openai_api_key,
+            model=settings.openai_image_model,
+            timeout=settings.openai_timeout_seconds,
+            max_retries=settings.openai_max_retries,
+        ),
         "bfl": BFLImageAdapter(api_key=settings.bfl_api_key),
     }
 

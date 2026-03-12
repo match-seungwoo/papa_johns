@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from app.adapters.models import ImageGenerationRequest
 from app.adapters.openai_image import ImageGenerationAdapter
 from app.adapters.queue import QueueAdapter
 from app.adapters.storage import StorageAdapter
@@ -66,8 +67,25 @@ class Worker:
         if adapter is None:
             raise ValueError(f"No adapter registered for vendor: {vendor}")
 
-        vendor_job_id = await adapter.submit(job, prompt, style_image)
-        result_bytes = await adapter.fetch_result(job, vendor_job_id)
+        user_image = await self._storage.download(job.input_s3_key)
+        request = ImageGenerationRequest(
+            prompt=prompt,
+            poster_image_bytes=style_image,
+            user_image_bytes=user_image,
+            template_id=job.template_id,
+            subject_category=job.subject_category.value,
+        )
+
+        submission = await adapter.submit(request)
+        external_job_id = submission.external_job_id or ""
+        fetch = await adapter.fetch_result(external_job_id)
+
+        result_bytes = fetch.result_bytes
+        if result_bytes is None:
+            raise RuntimeError(
+                f"Adapter '{vendor}' returned no image bytes for job {job.job_id}"
+            )
+
         result_key = await self._storage.upload_result(job.job_id, result_bytes, vendor)
         return vendor, self._storage.get_url(result_key)
 

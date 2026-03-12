@@ -54,7 +54,11 @@ class JobService:
         if job is None:
             return None
         updated = job.model_copy(
-            update={"status": status, "result_url": result_url, "result_urls": result_urls}
+            update={
+                "status": status,
+                "result_url": result_url,
+                "result_urls": result_urls,
+            }
         )
         self._jobs[job_id] = updated
         return updated
