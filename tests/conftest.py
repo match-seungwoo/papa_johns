@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_job_service
+from app.domain.models import Job
 from app.main import app
 from app.services.job_service import JobService
 
@@ -26,8 +27,26 @@ def mock_queue() -> AsyncMock:
 
 
 @pytest.fixture
-def job_service(mock_storage: AsyncMock, mock_queue: AsyncMock) -> JobService:
-    return JobService(storage=mock_storage, queue=mock_queue)
+def mock_job_store() -> AsyncMock:
+    store = AsyncMock()
+    _jobs: dict[str, Job] = {}
+
+    async def _save(job: Job) -> None:
+        _jobs[job.job_id] = job
+
+    async def _get(job_id: str) -> Job | None:
+        return _jobs.get(job_id)
+
+    store.save.side_effect = _save
+    store.get.side_effect = _get
+    return store
+
+
+@pytest.fixture
+def job_service(
+    mock_storage: AsyncMock, mock_queue: AsyncMock, mock_job_store: AsyncMock
+) -> JobService:
+    return JobService(storage=mock_storage, queue=mock_queue, job_store=mock_job_store)
 
 
 @pytest.fixture

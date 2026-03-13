@@ -85,7 +85,7 @@ async def test_submit_returns_submission_result() -> None:
     assert isinstance(result, SubmissionResult)
     assert result.status == GenerationStatus.SUCCEEDED
     assert result.external_job_id is not None
-    assert result.raw_metadata["model"] == "gpt-image-1.5"
+    assert result.raw_metadata["model"] == "gpt-image-1"
 
 
 async def test_submit_builds_openai_request_correctly() -> None:
@@ -102,9 +102,9 @@ async def test_submit_builds_openai_request_correctly() -> None:
     assert call_kwargs["model"] == "gpt-image-1.5"
     assert call_kwargs["prompt"] == "my custom prompt"
     assert call_kwargs["n"] == 1
-    assert call_kwargs["response_format"] == "b64_json"
+    assert "response_format" not in call_kwargs
     assert isinstance(call_kwargs["image"], list)
-    assert len(call_kwargs["image"]) == 2
+    assert len(call_kwargs["image"]) == 1  # Step 1: poster only
 
 
 async def test_submit_passes_size_and_quality_when_set() -> None:
@@ -131,7 +131,7 @@ async def test_submit_omits_optional_params_when_not_set() -> None:
         await adapter.submit(_make_request())
 
     call_kwargs = mock_client.images.edit.call_args.kwargs
-    assert "size" not in call_kwargs
+    assert call_kwargs["size"] == "1024x1024"  # default always included
     assert "quality" not in call_kwargs
 
 
@@ -237,11 +237,12 @@ async def test_missing_b64_json_raises_response_error() -> None:
     adapter = OpenAIImageAdapter(api_key="test-key")
     image_item = MagicMock()
     image_item.b64_json = None
+    image_item.url = None
     mock_client = MagicMock()
     mock_client.images.edit.return_value = MagicMock(data=[image_item])
 
     with patch.object(adapter, "_build_client", return_value=mock_client):
-        with pytest.raises(AdapterResponseError, match="missing base64 image content"):
+        with pytest.raises(AdapterResponseError, match="missing both b64_json and url"):
             await adapter.submit(_make_request())
 
 
