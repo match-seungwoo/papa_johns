@@ -12,44 +12,50 @@ from fastapi import FastAPI
 _LOG_DIR = Path(__file__).parent.parent / "logs"
 _LOG_DIR.mkdir(exist_ok=True)
 
-logging.config.dictConfig({
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "format": "%(asctime)s %(levelname)s %(name)s — %(message)s",
-            "datefmt": "%Y-%m-%dT%H:%M:%S",
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": "%(asctime)s %(levelname)s %(name)s — %(message)s",
+                "datefmt": "%Y-%m-%dT%H:%M:%S",
+            },
         },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "default",
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "default",
+            },
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": str(_LOG_DIR / "app.log"),
+                "maxBytes": 10 * 1024 * 1024,  # 10 MB
+                "backupCount": 5,
+                "formatter": "default",
+                "encoding": "utf-8",
+            },
         },
-        "file": {
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": str(_LOG_DIR / "app.log"),
-            "maxBytes": 10 * 1024 * 1024,  # 10 MB
-            "backupCount": 5,
-            "formatter": "default",
-            "encoding": "utf-8",
+        "root": {
+            "level": "INFO",
+            "handlers": ["console", "file"],
         },
-    },
-    "root": {
-        "level": "INFO",
-        "handlers": ["console", "file"],
-    },
-})
+    }
+)
 
-from app.adapters.bfl_image import BFLImageAdapter
-from app.adapters.job_store import DynamoDBJobStore
-from app.adapters.openai_image import OpenAIImageAdapter
-from app.adapters.queue import SQSQueue
-from app.adapters.storage import S3Storage
-from app.api.routes import health, jobs
-from app.config import get_settings
-from app.services.job_service import JobService
-from app.workers.worker import Worker
+from app.adapters.bfl_image import BFLImageAdapter  # noqa: E402
+from app.adapters.face_swap import (  # noqa: E402
+    MockFaceSwapAdapter,
+    MockHarmonizationAdapter,
+)
+from app.adapters.job_store import DynamoDBJobStore  # noqa: E402
+from app.adapters.openai_image import OpenAIImageAdapter  # noqa: E402
+from app.adapters.queue import SQSQueue  # noqa: E402
+from app.adapters.storage import S3Storage  # noqa: E402
+from app.api.routes import health, jobs  # noqa: E402
+from app.config import get_settings  # noqa: E402
+from app.services.job_service import JobService  # noqa: E402
+from app.workers.worker import Worker  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +66,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     storage = S3Storage(bucket=settings.s3_bucket, region=settings.aws_region)
     queue = SQSQueue(queue_url=settings.sqs_queue_url, region=settings.aws_region)
-    job_store = DynamoDBJobStore(table_name=settings.dynamodb_table, region=settings.aws_region)
+    job_store = DynamoDBJobStore(
+        table_name=settings.dynamodb_table, region=settings.aws_region
+    )
     job_service = JobService(storage=storage, queue=queue, job_store=job_store)
 
     adapters = {
@@ -72,6 +80,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             org_id=settings.openai_org_id,
         ),
         "bfl": BFLImageAdapter(api_key=settings.bfl_api_key),
+        "face_swap": MockFaceSwapAdapter(),
+        "harmonization": MockHarmonizationAdapter(),
     }
 
     worker = Worker(

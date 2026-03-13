@@ -12,7 +12,9 @@ class Settings(BaseSettings):
 
     aws_region: str = "ap-northeast-2"
     s3_bucket: str = "papa-poster-bucket"
-    sqs_queue_url: str = "https://sqs.ap-northeast-2.amazonaws.com/533266984381/papa-poster-jobs"
+    sqs_queue_url: str = (
+        "https://sqs.ap-northeast-2.amazonaws.com/533266984381/papa-poster-jobs"
+    )
     dynamodb_table: str = "papa-poster-jobs"
 
     openai_api_key: str = ""

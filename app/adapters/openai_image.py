@@ -25,6 +25,7 @@ from app.adapters.models import (
     SubmissionResult,
 )
 from app.utils.face import create_face_mask_rgba, crop_face
+from app.utils.image import resize_to_original, resize_to_square
 
 
 class ImageGenerationAdapter(ABC):
@@ -139,21 +140,27 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
     def _step1_generate(self, request: ImageGenerationRequest) -> bytes:
         """Step 1: generate poster character from the template ad image."""
         size = request.size or "1024x1024"
+        resized_bytes, orig_dims = resize_to_square(request.poster_image_bytes)
+        if resized_bytes is None:
+            resized_bytes = request.poster_image_bytes
+
         logger.info(
             "Step1 generate — model=%s poster=%dB size=%s prompt=%r",
             self._model,
-            len(request.poster_image_bytes),
+            len(resized_bytes),
             size,
             request.prompt[:80],
         )
-        return self._call_edit(
+        raw_result = self._call_edit(
             images=[
-                ("poster.png", io.BytesIO(request.poster_image_bytes), "image/png"),
+                ("poster.png", io.BytesIO(resized_bytes), "image/png"),
             ],
             prompt=request.prompt,
             size=size,
             quality=request.quality,
         )
+        restored = resize_to_original(raw_result, orig_dims)
+        return restored if restored is not None else raw_result
 
     def _step2_inpaint(
         self,

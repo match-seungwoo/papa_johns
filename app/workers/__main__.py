@@ -4,6 +4,8 @@ import asyncio
 import logging
 
 from app.adapters.bfl_image import BFLImageAdapter
+from app.adapters.face_swap import MockFaceSwapAdapter, MockHarmonizationAdapter
+from app.adapters.job_store import DynamoDBJobStore
 from app.adapters.openai_image import OpenAIImageAdapter
 from app.adapters.queue import SQSQueue
 from app.adapters.storage import S3Storage
@@ -19,7 +21,10 @@ async def main() -> None:
 
     storage = S3Storage(bucket=settings.s3_bucket, region=settings.aws_region)
     queue = SQSQueue(queue_url=settings.sqs_queue_url, region=settings.aws_region)
-    job_service = JobService(storage=storage, queue=queue)
+    job_store = DynamoDBJobStore(
+        table_name=settings.dynamodb_table, region=settings.aws_region
+    )
+    job_service = JobService(storage=storage, queue=queue, job_store=job_store)
 
     adapters = {
         "openai": OpenAIImageAdapter(
@@ -29,6 +34,8 @@ async def main() -> None:
             max_retries=settings.openai_max_retries,
         ),
         "bfl": BFLImageAdapter(api_key=settings.bfl_api_key),
+        "face_swap": MockFaceSwapAdapter(),
+        "harmonization": MockHarmonizationAdapter(),
     }
 
     worker = Worker(

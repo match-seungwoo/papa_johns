@@ -49,3 +49,5 @@ coverage.xml
 
 # AWS credentials
 .aws/
+app.log
+/input_sample
