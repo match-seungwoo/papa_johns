@@ -22,6 +22,7 @@ class ImageGenerationRequest:
     quality: str | None = None
     template_id: str | None = None
     subject_category: str | None = None
+    face_inpaint_prompt: str | None = None
 
 
 @dataclass(frozen=True)

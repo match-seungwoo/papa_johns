@@ -2,6 +2,7 @@ template_id: poster_04
 name: "Watercolor Art"
 ad_image: images/4.png
 prompt_template: "Style transfer: recreate this advertisement poster featuring a {subject_category}, preserving the original composition, color palette, and visual aesthetic"
+face_inpaint_prompt: "Seamlessly replace the transparent face region with the person's face from the reference photo, preserving the poster's style, lighting, and composition"
 vendors:
   - openai
   - bfl

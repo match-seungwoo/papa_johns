@@ -62,6 +62,7 @@ class Worker:
         vendor: str,
         prompt: str,
         style_image: bytes,
+        face_inpaint_prompt: str | None,
     ) -> tuple[str, str]:
         """Run a single vendor adapter. Returns (vendor, result_url)."""
         logger.info("[%s][%s] Starting vendor", job.job_id, vendor)
@@ -69,9 +70,15 @@ class Worker:
         if adapter is None:
             raise ValueError(f"No adapter registered for vendor: {vendor}")
 
-        logger.info("[%s][%s] Downloading user image from S3 key=%s", job.job_id, vendor, job.input_s3_key)
+        logger.info(
+            "[%s][%s] Downloading user image from S3 key=%s",
+            job.job_id, vendor, job.input_s3_key,
+        )
         user_image = await self._storage.download(job.input_s3_key)
-        logger.info("[%s][%s] User image downloaded (%d bytes)", job.job_id, vendor, len(user_image))
+        logger.info(
+            "[%s][%s] User image downloaded (%d bytes)",
+            job.job_id, vendor, len(user_image),
+        )
 
         request = ImageGenerationRequest(
             prompt=prompt,
@@ -79,6 +86,7 @@ class Worker:
             user_image_bytes=user_image,
             template_id=job.template_id,
             subject_category=job.subject_category.value,
+            face_inpaint_prompt=face_inpaint_prompt,
         )
 
         logger.info("[%s][%s] Submitting to adapter — prompt=%r", job.job_id, vendor, prompt[:80])
@@ -116,8 +124,10 @@ class Worker:
         prompt = prompt_template.format(subject_category=job.subject_category.value)
         logger.info("[%s] Prompt: %r", job.job_id, prompt[:120])
 
+        face_inpaint_prompt: str | None = recipe.get("face_inpaint_prompt") or None
+
         tasks = [
-            self._run_vendor(job, vendor, prompt, style_image)
+            self._run_vendor(job, vendor, prompt, style_image, face_inpaint_prompt)
             for vendor in vendors
         ]
         results = await asyncio.gather(*tasks)

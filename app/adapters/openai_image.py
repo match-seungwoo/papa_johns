@@ -24,6 +24,7 @@ from app.adapters.models import (
     PollResult,
     SubmissionResult,
 )
+from app.utils.face import create_face_mask_rgba, crop_face
 
 
 class ImageGenerationAdapter(ABC):
@@ -82,47 +83,27 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
             max_retries=self._max_retries,
         )
 
-    def _call_openai(self, request: ImageGenerationRequest) -> tuple[bytes, str]:
-        """
-        Synchronously call OpenAI images.edit() with gpt-image-1.
-        poster image + user image are passed as a list of file-like objects.
-        Intended to run inside asyncio.to_thread.
-
-        Returns (image_bytes, mime_type).
-        Converts OpenAI SDK exceptions to internal AdapterError subtypes.
-        """
-        if not request.prompt:
-            raise AdapterRequestError("prompt must not be empty")
-        if not request.poster_image_bytes:
-            raise AdapterRequestError("poster_image_bytes must not be empty")
-        if not request.user_image_bytes:
-            raise AdapterRequestError("user_image_bytes must not be empty")
-
+    def _call_edit(
+        self,
+        images: list[tuple[str, io.BytesIO, str]],
+        prompt: str,
+        size: str,
+        quality: str | None,
+    ) -> bytes:
+        """Synchronous wrapper around OpenAI images.edit(). Returns raw image bytes."""
         client = self._build_client()
-
         call_kwargs: dict[str, Any] = {
             "model": self._model,
-            "image": [
-                ("poster.png", io.BytesIO(request.poster_image_bytes), "image/png"),
-                ("user.jpg", io.BytesIO(request.user_image_bytes), "image/jpeg"),
-            ],
-            "prompt": request.prompt,
+            "image": images,
+            "prompt": prompt,
             "n": 1,
-            "size": request.size or "1024x1024",
+            "size": size,
         }
-        if request.quality:
-            call_kwargs["quality"] = request.quality
+        if quality:
+            call_kwargs["quality"] = quality
 
-        logger.info(
-            "OpenAI images.edit — model=%s poster=%dB user=%dB size=%s",
-            self._model,
-            len(request.poster_image_bytes),
-            len(request.user_image_bytes),
-            call_kwargs.get("size"),
-        )
         try:
             response = client.images.edit(**call_kwargs)
-            logger.info("OpenAI images.edit — response received, data count=%d", len(response.data or []))
         except openai.AuthenticationError as exc:
             raise AdapterConfigError(f"OpenAI authentication failed: {exc}") from exc
         except openai.BadRequestError as exc:
@@ -141,22 +122,106 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
 
         if b64_data:
             try:
-                image_bytes = base64.b64decode(b64_data)
+                return base64.b64decode(b64_data)
             except Exception as exc:
                 raise AdapterResponseError(
                     f"Failed to base64-decode OpenAI image response: {exc}"
                 ) from exc
-        elif url:
+        if url:
             import urllib.request
+
             with urllib.request.urlopen(url) as resp:  # noqa: S310
-                image_bytes = resp.read()
-        else:
-            raise AdapterResponseError(
-                "OpenAI response missing both b64_json and url fields."
-            )
+                return resp.read()  # type: ignore[no-any-return]
+        raise AdapterResponseError(
+            "OpenAI response missing both b64_json and url fields."
+        )
+
+    def _step1_generate(self, request: ImageGenerationRequest) -> bytes:
+        """Step 1: generate poster character from the template ad image."""
+        size = request.size or "1024x1024"
+        logger.info(
+            "Step1 generate — model=%s poster=%dB size=%s prompt=%r",
+            self._model,
+            len(request.poster_image_bytes),
+            size,
+            request.prompt[:80],
+        )
+        return self._call_edit(
+            images=[
+                ("poster.png", io.BytesIO(request.poster_image_bytes), "image/png"),
+            ],
+            prompt=request.prompt,
+            size=size,
+            quality=request.quality,
+        )
+
+    def _step2_inpaint(
+        self,
+        base_poster_bytes: bytes,
+        request: ImageGenerationRequest,
+    ) -> bytes | None:
+        """Step 2: replace the face region in the generated poster with the user's face.
+
+        Returns inpainted image bytes, or None if face detection fails (caller should
+        fall back to the Step 1 result).
+        """
+        assert request.face_inpaint_prompt  # caller must check before calling
+
+        masked = create_face_mask_rgba(base_poster_bytes)
+        if masked is None:
+            logger.warning("Step2 skipped: no face detected in generated poster")
+            return None
+
+        face_crop = crop_face(request.user_image_bytes)
+        if face_crop is None:
+            logger.warning("Step2 skipped: no face detected in user image")
+            return None
+
+        size = request.size or "1024x1024"
+        logger.info(
+            "Step2 inpaint — masked=%dB face_crop=%dB size=%s prompt=%r",
+            len(masked),
+            len(face_crop),
+            size,
+            request.face_inpaint_prompt[:80],
+        )
+        return self._call_edit(
+            images=[
+                ("masked_poster.png", io.BytesIO(masked), "image/png"),
+                ("user_face.jpg", io.BytesIO(face_crop), "image/jpeg"),
+            ],
+            prompt=request.face_inpaint_prompt,
+            size=size,
+            quality=request.quality,
+        )
+
+    def _call_openai(self, request: ImageGenerationRequest) -> tuple[bytes, str]:
+        """
+        Orchestrate the 2-step face-preserving pipeline.
+
+        Step 1 — generate base poster from the template ad image.
+        Step 2 — inpaint the face region using the user's face (only when
+                  face_inpaint_prompt is set and face detection succeeds).
+        Falls back to the Step 1 result when Step 2 is skipped.
+        """
+        if not request.prompt:
+            raise AdapterRequestError("prompt must not be empty")
+        if not request.poster_image_bytes:
+            raise AdapterRequestError("poster_image_bytes must not be empty")
+        if not request.user_image_bytes:
+            raise AdapterRequestError("user_image_bytes must not be empty")
+
+        base_poster = self._step1_generate(request)
+
+        if request.face_inpaint_prompt:
+            result = self._step2_inpaint(base_poster, request)
+            if result is not None:
+                logger.info("Step2 inpaint succeeded")
+                return result, "image/png"
+            logger.warning("Step2 failed — falling back to Step 1 result")
 
         mime_type = "image/jpeg" if request.output_format == "jpeg" else "image/png"
-        return image_bytes, mime_type
+        return base_poster, mime_type
 
     async def submit(self, request: ImageGenerationRequest) -> SubmissionResult:
         """

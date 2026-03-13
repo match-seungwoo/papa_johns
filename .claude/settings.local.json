@@ -60,7 +60,21 @@
       "Bash(/Users/sson/Documents/docs/papa/.venv/bin/python -c \"\nfrom openai.resources.images import Images\nimport inspect\nsig = inspect.signature\\(Images.edit\\)\nprint\\(sig\\)\n\")",
       "Bash(aws --profile mc dynamodb get-item \\\\\n  --table-name papa-poster-jobs \\\\\n  --key '{\"job_id\": {\"S\": \"job_1702381623e0\"}}' \\\\\n  --region ap-northeast-2 2>&1 | python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k: list\\(v.values\\(\\)\\)[0] for k,v in d['Item'].items\\(\\)}, indent=2\\)\\)\")",
       "Bash(aws --profile mc dynamodb get-item \\\\\n  --table-name papa-poster-jobs \\\\\n  --key '{\"job_id\": {\"S\": \"job_1702381623e0\"}}' \\\\\n  --region ap-northeast-2)",
-      "Bash(aws --profile mc dynamodb update-item \\\\\n  --table-name papa-poster-jobs \\\\\n  --key '{\"job_id\": {\"S\": \"job_1702381623e0\"}}' \\\\\n  --update-expression \"SET #s = :s, completed_at = :t\" \\\\\n  --expression-attribute-names '{\"#s\": \"status\"}' \\\\\n  --expression-attribute-values '{\":s\": {\"S\": \"failed\"}, \":t\": {\"S\": \"2026-03-13T02:38:00.000000Z\"}}' \\\\\n  --region ap-northeast-2)"
+      "Bash(aws --profile mc dynamodb update-item \\\\\n  --table-name papa-poster-jobs \\\\\n  --key '{\"job_id\": {\"S\": \"job_1702381623e0\"}}' \\\\\n  --update-expression \"SET #s = :s, completed_at = :t\" \\\\\n  --expression-attribute-names '{\"#s\": \"status\"}' \\\\\n  --expression-attribute-values '{\":s\": {\"S\": \"failed\"}, \":t\": {\"S\": \"2026-03-13T02:38:00.000000Z\"}}' \\\\\n  --region ap-northeast-2)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(curl -s http://localhost:27123/ 2>&1 | head -5)",
+      "Bash(find ~/Library -name \"*.json\" -path \"*local-rest-api*\" 2>/dev/null; find ~/Library -name \"data.json\" -path \"*obsidian*\" 2>/dev/null | head -10)",
+      "Bash(curl -s http://localhost:27123/vault/ 2>&1 | head -20)",
+      "Bash(find ~/Library -name \"*.json\" 2>/dev/null | xargs grep -l \"apiKey\" 2>/dev/null | grep -i plugin | head -10)",
+      "Bash(curl -s http://localhost:27123/vault/mc2026/3%EC%9B%94/3%EC%9B%94%2013%EC%9D%BC.md \\\\\n  -H \"Authorization: Bearer 865d20eeff4f5c7de45a8b163840dc92b26ee862ea2f1daadf7e7a2922d118b8\" \\\\\n  2>&1 | head -5)",
+      "Bash(curl -s http://localhost:27123/vault/mc2026/3%EC%9B%94/3%EC%9B%94%2013%EC%9D%BC.md \\\\\n  -H \"Authorization: Bearer 865d20eeff4f5c7de45a8b163840dc92b26ee862ea2f1daadf7e7a2922d118b8\" \\\\\n  2>&1)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/python -m pip install opencv-python-headless --quiet 2>&1 | tail -3)",
+      "Bash(git stash:*)",
+      "Bash(.venv/bin/mypy app/utils/face.py app/adapters/models.py app/adapters/openai_image.py app/workers/worker.py 2>&1)",
+      "Bash(.venv/bin/pytest tests/ -v 2>&1)",
+      "Bash(.venv/bin/pytest tests/ --tb=no -q 2>&1)"
     ]
   }
 }
