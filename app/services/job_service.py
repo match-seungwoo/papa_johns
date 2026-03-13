@@ -3,16 +3,22 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
+from app.adapters.job_store import JobStoreAdapter
 from app.adapters.queue import QueueAdapter
 from app.adapters.storage import StorageAdapter
 from app.domain.models import Job, JobStatus, SpeciesHint, SubjectCategory
 
 
 class JobService:
-    def __init__(self, storage: StorageAdapter, queue: QueueAdapter) -> None:
+    def __init__(
+        self,
+        storage: StorageAdapter,
+        queue: QueueAdapter,
+        job_store: JobStoreAdapter,
+    ) -> None:
         self._storage = storage
         self._queue = queue
-        self._jobs: dict[str, Job] = {}
+        self._job_store = job_store
 
     async def create_job(
         self,
@@ -36,12 +42,12 @@ class JobService:
             input_s3_key=input_s3_key,
             created_at=datetime.now(UTC),
         )
-        self._jobs[job_id] = job
+        await self._job_store.save(job)
         await self._queue.enqueue_job(job)
         return job
 
     async def get_job(self, job_id: str) -> Job | None:
-        return self._jobs.get(job_id)
+        return await self._job_store.get(job_id)
 
     async def update_job_status(
         self,
@@ -50,15 +56,23 @@ class JobService:
         result_url: str | None = None,
         result_urls: dict[str, str] | None = None,
     ) -> Job | None:
-        job = self._jobs.get(job_id)
+        job = await self._job_store.get(job_id)
         if job is None:
             return None
-        updated = job.model_copy(
-            update={
-                "status": status,
-                "result_url": result_url,
-                "result_urls": result_urls,
-            }
-        )
-        self._jobs[job_id] = updated
+
+        now = datetime.now(UTC)
+        updates: dict[str, object] = {"status": status}
+
+        if status == JobStatus.RUNNING:
+            updates["started_at"] = now
+        elif status in (JobStatus.SUCCEEDED, JobStatus.FAILED):
+            updates["completed_at"] = now
+
+        if result_url is not None:
+            updates["result_url"] = result_url
+        if result_urls is not None:
+            updates["result_urls"] = result_urls
+
+        updated = job.model_copy(update=updates)
+        await self._job_store.save(updated)
         return updated

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any
@@ -45,13 +46,17 @@ class ImageGenerationAdapter(ABC):
         ...
 
 
+logger = logging.getLogger(__name__)
+
+
 class OpenAIImageAdapter(ImageGenerationAdapter):
     def __init__(
         self,
         api_key: str,
-        model: str = "gpt-image-1.5",
+        model: str = "gpt-image-1",
         timeout: float = 120.0,
         max_retries: int = 2,
+        org_id: str = "",
     ) -> None:
         if not api_key:
             raise AdapterConfigError(
@@ -59,6 +64,7 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
                 "Set the OPENAI_API_KEY environment variable."
             )
         self._api_key = api_key
+        self._org_id = org_id or None
         self._model = model
         self._timeout = timeout
         self._max_retries = max_retries
@@ -71,13 +77,15 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
         """Build and return a configured OpenAI client."""
         return openai.OpenAI(
             api_key=self._api_key,
+            organization=self._org_id,
             timeout=self._timeout,
             max_retries=self._max_retries,
         )
 
     def _call_openai(self, request: ImageGenerationRequest) -> tuple[bytes, str]:
         """
-        Synchronously call OpenAI images.edit().
+        Synchronously call OpenAI images.edit() with gpt-image-1.
+        poster image + user image are passed as a list of file-like objects.
         Intended to run inside asyncio.to_thread.
 
         Returns (image_bytes, mime_type).
@@ -100,15 +108,21 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
             ],
             "prompt": request.prompt,
             "n": 1,
-            "response_format": "b64_json",
+            "size": request.size or "1024x1024",
         }
-        if request.size:
-            call_kwargs["size"] = request.size
         if request.quality:
             call_kwargs["quality"] = request.quality
 
+        logger.info(
+            "OpenAI images.edit — model=%s poster=%dB user=%dB size=%s",
+            self._model,
+            len(request.poster_image_bytes),
+            len(request.user_image_bytes),
+            call_kwargs.get("size"),
+        )
         try:
             response = client.images.edit(**call_kwargs)
+            logger.info("OpenAI images.edit — response received, data count=%d", len(response.data or []))
         except openai.AuthenticationError as exc:
             raise AdapterConfigError(f"OpenAI authentication failed: {exc}") from exc
         except openai.BadRequestError as exc:
@@ -123,18 +137,23 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
 
         image_item = response.data[0]
         b64_data: str | None = getattr(image_item, "b64_json", None)
-        if not b64_data:
-            raise AdapterResponseError(
-                "OpenAI response missing base64 image content. "
-                "Expected response_format='b64_json'."
-            )
+        url: str | None = getattr(image_item, "url", None)
 
-        try:
-            image_bytes = base64.b64decode(b64_data)
-        except Exception as exc:
+        if b64_data:
+            try:
+                image_bytes = base64.b64decode(b64_data)
+            except Exception as exc:
+                raise AdapterResponseError(
+                    f"Failed to base64-decode OpenAI image response: {exc}"
+                ) from exc
+        elif url:
+            import urllib.request
+            with urllib.request.urlopen(url) as resp:  # noqa: S310
+                image_bytes = resp.read()
+        else:
             raise AdapterResponseError(
-                f"Failed to base64-decode OpenAI image response: {exc}"
-            ) from exc
+                "OpenAI response missing both b64_json and url fields."
+            )
 
         mime_type = "image/jpeg" if request.output_format == "jpeg" else "image/png"
         return image_bytes, mime_type

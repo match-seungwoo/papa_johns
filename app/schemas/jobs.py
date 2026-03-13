@@ -16,4 +16,8 @@ class JobStatusResponse(BaseModel):
     job_id: str
     status: JobStatus
     result_url: str | None = None
+    result_urls: dict[str, str] | None = None
     created_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_seconds: float | None = None

@@ -10,12 +10,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    aws_region: str = "us-east-1"
-    s3_bucket: str = "poster-engine-bucket"
-    sqs_queue_url: str = "https://sqs.us-east-1.amazonaws.com/000000000000/poster-jobs"
+    aws_region: str = "ap-northeast-2"
+    s3_bucket: str = "papa-poster-bucket"
+    sqs_queue_url: str = "https://sqs.ap-northeast-2.amazonaws.com/533266984381/papa-poster-jobs"
+    dynamodb_table: str = "papa-poster-jobs"
 
     openai_api_key: str = ""
-    openai_image_model: str = "gpt-image-1.5"
+    openai_org_id: str = ""
+    openai_image_model: str = "gpt-image-1"
     openai_timeout_seconds: float = 120.0
     openai_max_retries: int = 2
 

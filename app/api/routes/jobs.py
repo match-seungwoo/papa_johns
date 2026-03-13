@@ -39,9 +39,18 @@ async def get_job(
     job = await service.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    duration_seconds = None
+    if job.started_at and job.completed_at:
+        duration_seconds = (job.completed_at - job.started_at).total_seconds()
+
     return JobStatusResponse(
         job_id=job.job_id,
         status=job.status,
         result_url=job.result_url,
+        result_urls=job.result_urls,
         created_at=job.created_at,
+        started_at=job.started_at,
+        completed_at=job.completed_at,
+        duration_seconds=duration_seconds,
     )
