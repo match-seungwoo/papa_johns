@@ -126,7 +126,9 @@ class BFLImageAdapter(ImageGenerationAdapter):
                         pool=5.0,
                     )
                 ) as client:
-                    response = await client.post(url, json=body, headers=self._headers())
+                    response = await client.post(
+                        url, json=body, headers=self._headers()
+                    )
                 break
             except httpx.TimeoutException as exc:
                 timeout_error = exc

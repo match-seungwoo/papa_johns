@@ -49,6 +49,7 @@ class ImageGenerationAdapter(ABC):
 logger = logging.getLogger(__name__)
 
 
+
 class OpenAIImageAdapter(ImageGenerationAdapter):
     def __init__(
         self,

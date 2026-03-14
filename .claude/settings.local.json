@@ -66,7 +66,11 @@
       "Bash(uv run:*)",
       "Bash(aws --profile mc s3 ls 2>&1 | grep papa && aws --profile mc sqs list-queues --query 'QueueUrls' --output text 2>&1 | tr '\\\\t' '\\\\n' | grep papa && aws --profile mc dynamodb list-tables --query 'TableNames' --output text 2>&1 | tr '\\\\t' '\\\\n' | grep papa)",
       "Bash(aws --profile mc configure get region 2>&1)",
-      "Bash(curl -sv --connect-timeout 10 https://api.bfl.ml 2>&1 | head -30)"
+      "Bash(curl -sv --connect-timeout 10 https://api.bfl.ml 2>&1 | head -30)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/sson/Documents/docs/papa/**)",
+      "Bash(done)"
     ]
   }
 }

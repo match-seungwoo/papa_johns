@@ -67,6 +67,7 @@ class Worker:
         vendor: str,
         prompt: str,
         style_image: bytes,
+        quality: str | None = None,
     ) -> tuple[str, str]:
         """Run a single vendor adapter. Returns (vendor, result_url)."""
         logger.info("[%s][%s] Starting vendor", job.job_id, vendor)
@@ -94,6 +95,7 @@ class Worker:
             user_image_bytes=user_image,
             template_id=job.template_id,
             subject_category=job.subject_category.value,
+            quality=quality,
         )
 
         logger.info(
@@ -151,10 +153,11 @@ class Worker:
 
         prompt_template: str = recipe.get("prompt_template", "")
         prompt = prompt_template.format(subject_category=job.subject_category.value)
-        logger.info("[%s] Prompt: %r", job.job_id, prompt[:120])
+        quality: str | None = recipe.get("quality")
+        logger.info("[%s] Prompt: %r quality=%s", job.job_id, prompt[:120], quality)
 
         tasks = [
-            self._run_vendor(job, vendor, prompt, style_image)
+            self._run_vendor(job, vendor, prompt, style_image, quality)
             for vendor in vendors
         ]
         results = await asyncio.gather(*tasks)

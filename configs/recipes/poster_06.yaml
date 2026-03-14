@@ -1,7 +1,8 @@
 template_id: poster_06
 name: "Pop Art"
 ad_image: images/6.png
-prompt_template: "Style transfer: recreate this advertisement poster featuring a {subject_category}, preserving the original composition, color palette, and visual aesthetic"
+prompt_template: "Style transfer: recreate this advertisement poster featuring a {subject_category}. Preserve the original composition, layout, color palette, and visual aesthetic exactly. Accurately match the facial features, skin tone, and appearance of the person in the reference photo."
+quality: high
 vendors:
   - openai
   - bfl
