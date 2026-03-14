@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 from app.adapters.bfl_image import BFLImageAdapter
+from app.adapters.fal_faceswap import FALFaceSwapAdapter
 from app.adapters.job_store import DynamoDBJobStore
 from app.adapters.openai_image import OpenAIImageAdapter
 from app.adapters.queue import SQSQueue
@@ -54,11 +55,17 @@ async def main() -> None:
         ),
     }
 
+    faceswap = FALFaceSwapAdapter(
+        api_key=settings.fal_key,
+        model=settings.fal_faceswap_model,
+    ) if settings.fal_key else None
+
     worker = Worker(
         queue=queue,
         storage=storage,
         job_service=job_service,
         adapters=adapters,
+        faceswap=faceswap,
     )
     await worker.run()
 

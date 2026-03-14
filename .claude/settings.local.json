@@ -70,7 +70,11 @@
       "Bash(for f:*)",
       "Bash(do echo:*)",
       "Read(//Users/sson/Documents/docs/papa/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(python3.13 -c \"import mediapipe\" 2>&1; python3.13 -c \"import cv2\" 2>&1)",
+      "Bash(pip index:*)",
+      "Bash(uv add:*)",
+      "Bash(uv remove:*)"
     ]
   }
 }

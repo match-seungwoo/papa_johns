@@ -62,8 +62,9 @@ When completed:
 {
 "job_id": "job_12345",
 "status": "succeeded",
-"result_url": "https://s3.amazonaws.com/....png
-"
+"result_urls": {
+  "openai": "https://s3.amazonaws.com/.../openai.png"
+}
 }
 
 ---

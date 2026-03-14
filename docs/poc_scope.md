@@ -2,86 +2,87 @@
 
 ## Objective
 
-Build a backend engine that generates a personalized poster image based on:
+선택된 포스터 템플릿과 유저 사진을 기반으로 개인화된 포스터 이미지를 생성하는 백엔드 엔진.
 
-- selected poster template
-- uploaded user photo
-- subject category
+POC 범위: **생성 파이프라인 아키텍처 검증**
 
-This POC focuses only on the **generation engine**.
-
-There will be:
-
-- no frontend
-- no UI
-- no design system
-- no authentication layer
-
-The goal is validating the **generation pipeline architecture**.
+제외 항목:
+- frontend / UI
+- 인증
+- 어드민 툴
 
 ---
 
-## Supported Subject Categories
+## 지원 Subject Category
 
-The caller must provide the subject category.
+호출자가 직접 지정해야 한다. 엔진은 이미지로부터 추론하지 않는다.
 
-Allowed values:
-
-- male
-- female
-- boy
-- girl
-- animal
-
-The engine **must not attempt to infer gender or age from the image**.
-
-For animals the caller may optionally provide:
-
-species_hint: dog | cat | other
+| 값 | 설명 |
+|----|------|
+| `male` | 성인 남성 |
+| `female` | 성인 여성 |
+| `boy` | 남아 |
+| `girl` | 여아 |
+| `animal` | 동물 (선택적으로 `species_hint` 제공 가능) |
 
 ---
 
-## Poster Templates
+## 포스터 템플릿
 
-For POC we assume **6 poster templates** exist.
+6개 템플릿 (`poster_01` ~ `poster_06`).
 
-Each template is defined by a configuration file:
-
-configs/recipes/{template_id}.yaml
-
-Template configuration includes:
-
-- editable region mask
-- prompt template
-- style reference
-- background description
-- vendor routing rule
+각 템플릿은 `configs/recipes/{template_id}.yaml`로 정의:
+- 스타일 참조 이미지 (`ad_image`)
+- 프롬프트 템플릿
+- 사용 벤더 (`vendors`)
+- 후처리 목록 (`post_process`)
+- 생성 품질 (`quality`)
 
 ---
 
-## Output
+## 지원 벤더
 
-The system generates:
+| 벤더 | 역할 | 상태 |
+|------|------|------|
+| OpenAI `gpt-image-1` | 포스터 스타일 + 유저 이미지 합성 | 활성 |
+| BFL `flux-pro-1.1-ultra` | IP-Adapter 기반 이미지 생성 | 구현 완료 |
+| FAL AI `fal-ai/face-swap` | 얼굴 후처리 (생성 후 적용) | 활성 |
 
-- one final poster image
-- stored in S3
+---
 
-The API returns:
+## 현재 활성 파이프라인 (A+C 조합)
 
-job_id
-status
-result_url
+poster_01 기준:
+
+```
+유저 이미지 업로드
+  → OpenAI images.edit()
+      입력: 포스터 스타일 이미지 + 유저 이미지
+      출력: 스타일이 적용된 포스터
+  → FAL AI face-swap
+      source: 생성된 포스터
+      swap:   유저 이미지
+      출력: 유저 얼굴이 정확히 합성된 최종 포스터
+  → S3 저장 → result_url 반환
+```
+
+**선택 이유**: BFL FLUX는 `image_prompt` 슬롯이 하나뿐이라 스타일 이미지와 유저 얼굴을 동시에 conditioning할 수 없음. OpenAI로 스타일을 살리고 FAL faceswap으로 얼굴 identity를 정확히 보존하는 두 단계 방식을 채택.
+
+---
+
+## 출력
+
+- 최종 포스터 이미지 1장 (S3 저장)
+- API 응답: `job_id`, `status`, `result_urls` (벤더별 URL dict)
 
 ---
 
 ## Non-Goals
 
-The following are explicitly out of scope:
-
 - frontend
-- user authentication
-- admin panel
-- analytics
-- A/B testing
-- CDN integration
-- payment systems
+- 사용자 인증
+- 어드민 패널
+- 분석/통계
+- A/B 테스트
+- CDN 연동
+- 결제

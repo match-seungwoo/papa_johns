@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = 120.0
     openai_max_retries: int = 2
 
+    fal_key: str = ""
+    fal_faceswap_model: str = "fal-ai/face-swap"
+
     bfl_api_key: str = ""
     bfl_base_url: str = "https://api.bfl.ai/v1"
     bfl_flux_model: str = "flux-pro-1.1-ultra"
