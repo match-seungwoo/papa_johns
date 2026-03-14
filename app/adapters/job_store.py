@@ -20,12 +20,13 @@ class JobStoreAdapter(ABC):
 
 
 class DynamoDBJobStore(JobStoreAdapter):
-    def __init__(self, table_name: str, region: str = "us-east-1") -> None:
+    def __init__(
+        self, table_name: str, region: str = "us-east-1", profile: str = ""
+    ) -> None:
         import boto3  # deferred to avoid import cost at module load
 
-        self._table: Any = boto3.resource("dynamodb", region_name=region).Table(
-            table_name
-        )
+        session = boto3.Session(profile_name=profile or None, region_name=region)
+        self._table: Any = session.resource("dynamodb").Table(table_name)
 
     async def save(self, job: Job) -> None:
         item = {k: v for k, v in job.model_dump(mode="json").items() if v is not None}

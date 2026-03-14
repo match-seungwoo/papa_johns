@@ -45,7 +45,12 @@ class Worker:
         if job is None:
             return False
 
-        logger.info("[%s] Dequeued — template=%s subject=%s", job.job_id, job.template_id, job.subject_category)
+        logger.info(
+            "[%s] Dequeued — template=%s subject=%s",
+            job.job_id,
+            job.template_id,
+            job.subject_category,
+        )
         await self._job_service.update_job_status(job.job_id, JobStatus.RUNNING)
         logger.info("[%s] Status → RUNNING", job.job_id)
         try:
@@ -69,9 +74,19 @@ class Worker:
         if adapter is None:
             raise ValueError(f"No adapter registered for vendor: {vendor}")
 
-        logger.info("[%s][%s] Downloading user image from S3 key=%s", job.job_id, vendor, job.input_s3_key)
+        logger.info(
+            "[%s][%s] Downloading user image from S3 key=%s",
+            job.job_id,
+            vendor,
+            job.input_s3_key,
+        )
         user_image = await self._storage.download(job.input_s3_key)
-        logger.info("[%s][%s] User image downloaded (%d bytes)", job.job_id, vendor, len(user_image))
+        logger.info(
+            "[%s][%s] User image downloaded (%d bytes)",
+            job.job_id,
+            vendor,
+            len(user_image),
+        )
 
         request = ImageGenerationRequest(
             prompt=prompt,
@@ -81,13 +96,25 @@ class Worker:
             subject_category=job.subject_category.value,
         )
 
-        logger.info("[%s][%s] Submitting to adapter — prompt=%r", job.job_id, vendor, prompt[:80])
+        logger.info(
+            "[%s][%s] Submitting to adapter — prompt=%r",
+            job.job_id,
+            vendor,
+            prompt[:80],
+        )
         submission = await adapter.submit(request)
-        logger.info("[%s][%s] Submission complete — external_job_id=%s", job.job_id, vendor, submission.external_job_id)
+        logger.info(
+            "[%s][%s] Submission complete — external_job_id=%s",
+            job.job_id,
+            vendor,
+            submission.external_job_id,
+        )
 
         external_job_id = submission.external_job_id or ""
         fetch = await adapter.fetch_result(external_job_id)
-        logger.info("[%s][%s] Fetch complete — status=%s", job.job_id, vendor, fetch.status)
+        logger.info(
+            "[%s][%s] Fetch complete — status=%s", job.job_id, vendor, fetch.status
+        )
 
         result_bytes = fetch.result_bytes
         if result_bytes is None:
@@ -95,7 +122,12 @@ class Worker:
                 f"Adapter '{vendor}' returned no image bytes for job {job.job_id}"
             )
 
-        logger.info("[%s][%s] Uploading result (%d bytes) to S3", job.job_id, vendor, len(result_bytes))
+        logger.info(
+            "[%s][%s] Uploading result (%d bytes) to S3",
+            job.job_id,
+            vendor,
+            len(result_bytes),
+        )
         result_key = await self._storage.upload_result(job.job_id, result_bytes, vendor)
         result_url = self._storage.get_url(result_key)
         logger.info("[%s][%s] Upload complete — url=%s", job.job_id, vendor, result_url)
@@ -110,7 +142,12 @@ class Worker:
 
         ad_image_path = PROJECT_ROOT / recipe["ad_image"]
         style_image = ad_image_path.read_bytes()
-        logger.info("[%s] Style image loaded (%d bytes) from %s", job.job_id, len(style_image), ad_image_path)
+        logger.info(
+            "[%s] Style image loaded (%d bytes) from %s",
+            job.job_id,
+            len(style_image),
+            ad_image_path,
+        )
 
         prompt_template: str = recipe.get("prompt_template", "")
         prompt = prompt_template.format(subject_category=job.subject_category.value)

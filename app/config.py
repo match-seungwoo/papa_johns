@@ -10,6 +10,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    aws_profile: str = ""
     aws_region: str = "ap-northeast-2"
     s3_bucket: str = "papa-poster-bucket"
     sqs_queue_url: str = "https://sqs.ap-northeast-2.amazonaws.com/533266984381/papa-poster-jobs"
@@ -22,6 +23,13 @@ class Settings(BaseSettings):
     openai_max_retries: int = 2
 
     bfl_api_key: str = ""
+    bfl_base_url: str = "https://api.bfl.ai/v1"
+    bfl_flux_model: str = "flux-pro-1.1-ultra"
+    bfl_image_prompt_strength: float = 0.15
+    bfl_submit_timeout_seconds: float = 60.0
+    bfl_submit_max_retries: int = 2
+    bfl_poll_interval_seconds: float = 2.0
+    bfl_poll_max_attempts: int = 60
 
 
 @lru_cache

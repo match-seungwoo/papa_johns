@@ -28,12 +28,15 @@ class StorageAdapter(ABC):
 
 
 class S3Storage(StorageAdapter):
-    def __init__(self, bucket: str, region: str = "us-east-1") -> None:
+    def __init__(
+        self, bucket: str, region: str = "us-east-1", profile: str = ""
+    ) -> None:
         import boto3  # deferred to avoid import cost at module load
 
         self._bucket = bucket
         self._region = region
-        self._client: Any = boto3.client("s3", region_name=region)
+        session = boto3.Session(profile_name=profile or None, region_name=region)
+        self._client: Any = session.client("s3")
 
     async def upload_input(self, job_id: str, data: bytes, content_type: str) -> str:
         key = f"uploads/{job_id}/input.jpg"

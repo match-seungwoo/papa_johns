@@ -108,8 +108,9 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
             ],
             "prompt": request.prompt,
             "n": 1,
-            "size": request.size or "1024x1024",
         }
+        if request.size:
+            call_kwargs["size"] = request.size
         if request.quality:
             call_kwargs["quality"] = request.quality
 
@@ -122,7 +123,10 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
         )
         try:
             response = client.images.edit(**call_kwargs)
-            logger.info("OpenAI images.edit — response received, data count=%d", len(response.data or []))
+            logger.info(
+                "OpenAI images.edit — response received, data count=%d",
+                len(response.data or []),
+            )
         except openai.AuthenticationError as exc:
             raise AdapterConfigError(f"OpenAI authentication failed: {exc}") from exc
         except openai.BadRequestError as exc:

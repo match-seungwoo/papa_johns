@@ -21,12 +21,15 @@ class QueueAdapter(ABC):
 
 
 class SQSQueue(QueueAdapter):
-    def __init__(self, queue_url: str, region: str = "us-east-1") -> None:
+    def __init__(
+        self, queue_url: str, region: str = "us-east-1", profile: str = ""
+    ) -> None:
         import boto3  # deferred to avoid import cost at module load
 
         self._queue_url = queue_url
         self._region = region
-        self._client: Any = boto3.client("sqs", region_name=region)
+        session = boto3.Session(profile_name=profile or None, region_name=region)
+        self._client: Any = session.client("sqs")
 
     async def enqueue_job(self, job: Job) -> None:
         await asyncio.to_thread(
