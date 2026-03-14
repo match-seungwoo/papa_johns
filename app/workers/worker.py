@@ -94,7 +94,7 @@ class Worker:
         # Faceswap gets slightly wider context for stability.
         user_face_for_swap = crop_face(user_image, padding=0.15)
         logger.info(
-            "[%s][%s] User image downloaded (%d bytes) → gen_face (%d bytes), swap_face (%d bytes)",
+            "[%s][%s] Downloaded %dB → gen_face %dB swap_face %dB",
             job.job_id,
             vendor,
             len(user_image),

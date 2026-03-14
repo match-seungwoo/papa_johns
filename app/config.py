@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     openai_max_retries: int = 2
 
     fal_key: str = ""
-    fal_faceswap_model: str = "fal-ai/face-swap"
+    fal_faceswap_model: str = "fal-ai/pulid"
 
     bfl_api_key: str = ""
     bfl_base_url: str = "https://api.bfl.ai/v1"

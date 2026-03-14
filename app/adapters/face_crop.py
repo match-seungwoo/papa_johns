@@ -65,7 +65,7 @@ def _to_jpeg_bytes(image: Image.Image) -> bytes:
 
 
 def _fallback_portrait_crop(image: Image.Image) -> Image.Image:
-    """Return an upper-center square crop to avoid clothing-heavy full image fallback."""
+    """Return an upper-center square crop to avoid clothing-heavy fallback."""
     w, h = image.size
     crop_size = max(128, int(min(w, h) * 0.65))
     crop_size = min(crop_size, w, h)
