@@ -26,6 +26,18 @@ class StorageAdapter(ABC):
         """Download object by S3 key. Returns raw bytes."""
         ...
 
+    @abstractmethod
+    async def upload_temp(
+        self, job_id: str, data: bytes, suffix: str, content_type: str
+    ) -> str:
+        """Upload a temporary file. Returns S3 key."""
+        ...
+
+    @abstractmethod
+    def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str:
+        """Return a presigned URL for the given S3 key."""
+        ...
+
 
 class S3Storage(StorageAdapter):
     def __init__(
@@ -70,3 +82,24 @@ class S3Storage(StorageAdapter):
             return data
 
         return await asyncio.to_thread(_do)
+
+    async def upload_temp(
+        self, job_id: str, data: bytes, suffix: str, content_type: str
+    ) -> str:
+        key = f"temp/{job_id}/{suffix}"
+        await asyncio.to_thread(
+            self._client.put_object,
+            Bucket=self._bucket,
+            Key=key,
+            Body=data,
+            ContentType=content_type,
+        )
+        return key
+
+    def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str:
+        url: str = self._client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": key},
+            ExpiresIn=expires_in,
+        )
+        return url

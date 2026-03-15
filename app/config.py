@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = 120.0
     openai_max_retries: int = 2
 
-    fal_key: str = ""
-    fal_faceswap_model: str = "fal-ai/pulid"
+    akool_client_id: str = ""
+    akool_api_key: str = ""
+    akool_face_enhance: int = 1
+    akool_poll_interval_seconds: float = 2.0
+    akool_poll_max_attempts: int = 30
 
     bfl_api_key: str = ""
     bfl_base_url: str = "https://api.bfl.ai/v1"

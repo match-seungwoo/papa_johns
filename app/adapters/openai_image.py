@@ -96,17 +96,20 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
             raise AdapterRequestError("prompt must not be empty")
         if not request.poster_image_bytes:
             raise AdapterRequestError("poster_image_bytes must not be empty")
-        if not request.user_image_bytes:
-            raise AdapterRequestError("user_image_bytes must not be empty")
 
         client = self._build_client()
 
+        images: list[Any] = [
+            ("poster.png", io.BytesIO(request.poster_image_bytes), "image/png"),
+        ]
+        if request.user_image_bytes:
+            images.append(
+                ("user.jpg", io.BytesIO(request.user_image_bytes), "image/jpeg")
+            )
+
         call_kwargs: dict[str, Any] = {
             "model": self._model,
-            "image": [
-                ("poster.png", io.BytesIO(request.poster_image_bytes), "image/png"),
-                ("user.jpg", io.BytesIO(request.user_image_bytes), "image/jpeg"),
-            ],
+            "image": images,
             "prompt": request.prompt,
             "n": 1,
         }
@@ -116,10 +119,10 @@ class OpenAIImageAdapter(ImageGenerationAdapter):
             call_kwargs["quality"] = request.quality
 
         logger.info(
-            "OpenAI images.edit — model=%s poster=%dB user=%dB size=%s",
+            "OpenAI images.edit — model=%s poster=%dB user=%s size=%s",
             self._model,
             len(request.poster_image_bytes),
-            len(request.user_image_bytes),
+            f"{len(request.user_image_bytes)}B" if request.user_image_bytes else "none",
             call_kwargs.get("size"),
         )
         try:

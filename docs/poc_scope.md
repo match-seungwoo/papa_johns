@@ -46,7 +46,7 @@ POC 범위: **생성 파이프라인 아키텍처 검증**
 |------|------|------|
 | OpenAI `gpt-image-1` | 포스터 스타일 + 유저 이미지 합성 | 활성 |
 | BFL `flux-pro-1.1-ultra` | IP-Adapter 기반 이미지 생성 | 구현 완료 |
-| FAL AI `fal-ai/face-swap` | 얼굴 후처리 (생성 후 적용) | 활성 |
+| Akool `highquality/specifyimage` | 얼굴 후처리 (생성 후 적용) | 활성 |
 
 ---
 
@@ -59,9 +59,9 @@ poster_01 기준:
   → OpenAI images.edit()
       입력: 포스터 스타일 이미지 + 유저 이미지
       출력: 스타일이 적용된 포스터
-  → FAL AI face-swap
-      source: 생성된 포스터
-      swap:   유저 이미지
+  → Akool faceswap (highquality/specifyimage)
+      modifyImage: 생성된 포스터
+      sourceImage: 유저 얼굴
       출력: 유저 얼굴이 정확히 합성된 최종 포스터
   → S3 저장 → result_url 반환
 ```

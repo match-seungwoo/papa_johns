@@ -16,7 +16,7 @@ class GenerationStatus(StrEnum):
 class ImageGenerationRequest:
     prompt: str
     poster_image_bytes: bytes
-    user_image_bytes: bytes
+    user_image_bytes: bytes | None = None
     output_format: Literal["png", "jpeg"] = "png"
     size: str | None = None
     quality: str | None = None
