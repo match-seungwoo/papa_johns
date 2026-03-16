@@ -1,7 +1,7 @@
 template_id: poster_03
 name: "Neon Cyberpunk"
 ad_image: images/3.png
-prompt_template: "Recreate this advertisement poster featuring a {subject_category}. Preserve the original composition, layout, color palette, and visual aesthetic exactly. The subject must wear the identical outfit, clothing, and accessories shown in the poster. Maintain all fashion details and styling from the original advertisement. Use the reference face image for identity only; ignore its clothing, body pose, and background."
+prompt_template: "Recreate this advertisement poster featuring a {subject_category}. Preserve the original composition, layout, color palette, and visual aesthetic exactly. The subject must wear the identical outfit, clothing, and accessories shown in the poster. Maintain all fashion details and styling from the original advertisement. The subject's face must be a realistic human face with natural skin texture and clear facial structure, suitable for post-processing face replacement."
 quality: high
 size: "1536x1024"
 vendors:

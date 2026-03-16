@@ -76,7 +76,8 @@
       "Bash(uv add:*)",
       "Bash(uv remove:*)",
       "WebFetch(domain:docs.akool.com)",
-      "Bash(python -m ruff check app/ 2>&1)"
+      "Bash(python -m ruff check app/ 2>&1)",
+      "Bash(grep -n \"prompt_template\\\\|post_process\\\\|faceswap\" /Users/sson/Documents/docs/papa/configs/recipes/poster_0*.yaml)"
     ]
   }
 }

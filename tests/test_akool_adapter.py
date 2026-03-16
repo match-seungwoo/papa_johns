@@ -37,14 +37,15 @@ async def test_submit_payload_uses_v4_faceswap_by_image_shape() -> None:
         await adapter._submit_and_poll(
             poster_url="https://example.com/poster.png",
             face_url="https://example.com/face.jpg",
+            poster_landmarks=[],
         )
 
     args, kwargs = mock_client.post.call_args
-    assert args[0].endswith("/api/open/v4/faceswap/faceswapByImage")
+    assert args[0].endswith("/api/open/v3/faceswap/highquality/specifyimage")
     payload = kwargs["json"]
+    assert payload["modifyImage"] == "https://example.com/poster.png"
     assert payload["targetImage"] == [{"path": "https://example.com/poster.png"}]
     assert payload["sourceImage"] == [{"path": "https://example.com/face.jpg"}]
-    assert payload["model_name"] == "akool_faceswap_image_hq"
 
 
 @pytest.mark.asyncio
@@ -83,7 +84,6 @@ async def test_poll_uses_listbyids_and_returns_url_on_status_3() -> None:
             lambda **_: poll_ctx,
         )
         url = await adapter._poll(
-            client=None,
             request_id="req_123",
             headers={"x-api-key": "akool-test-key"},
         )

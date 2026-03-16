@@ -8,7 +8,6 @@ from typing import Any
 import yaml
 
 from app.adapters.akool_faceswap import AkoolFaceSwapAdapter
-from app.adapters.face_crop import crop_face
 from app.adapters.models import ImageGenerationRequest
 from app.adapters.openai_image import ImageGenerationAdapter
 from app.adapters.queue import QueueAdapter
@@ -74,6 +73,7 @@ class Worker:
         quality: str | None = None,
         size: str | None = None,
         apply_faceswap: bool = False,
+        swap_all_faces: bool = False,
     ) -> tuple[str, str]:
         """Run a single vendor adapter. Returns (vendor, result_url)."""
         logger.info("[%s][%s] Starting vendor", job.job_id, vendor)
@@ -88,13 +88,11 @@ class Worker:
             job.input_s3_key,
         )
         user_image = await self._storage.download(job.input_s3_key)
-        user_face_for_swap = crop_face(user_image, padding=0.15)
         logger.info(
-            "[%s][%s] Downloaded %dB → swap_face %dB",
+            "[%s][%s] Downloaded %dB",
             job.job_id,
             vendor,
             len(user_image),
-            len(user_face_for_swap),
         )
 
         request = ImageGenerationRequest(
@@ -134,14 +132,15 @@ class Worker:
 
         if apply_faceswap and self._faceswap is not None:
             logger.info(
-                "[%s][%s] Applying faceswap — generated=%dB user_face=%dB",
+                "[%s][%s] Applying faceswap — generated=%dB user=%dB",
                 job.job_id,
                 vendor,
                 len(result_bytes),
-                len(user_face_for_swap),
+                len(user_image),
             )
             result_bytes = await self._faceswap.swap(
-                result_bytes, user_face_for_swap, job.job_id
+                result_bytes, user_image, job.job_id,
+                swap_all_faces=swap_all_faces,
             )
             logger.info(
                 "[%s][%s] Faceswap complete — result=%dB",
@@ -168,6 +167,7 @@ class Worker:
         vendors: list[str] = recipe.get("vendors") or [recipe.get("vendor", "openai")]
         post_process: list[str] = recipe.get("post_process") or []
         apply_faceswap = "faceswap" in post_process
+        swap_all_faces: bool = bool(recipe.get("swap_all_faces", False))
         if apply_faceswap and self._faceswap is None:
             raise RuntimeError(
                 "Recipe requires faceswap, but Akool adapter is not configured. "
@@ -197,7 +197,8 @@ class Worker:
 
         tasks = [
             self._run_vendor(
-                job, vendor, prompt, style_image, quality, size, apply_faceswap
+                job, vendor, prompt, style_image, quality, size,
+                apply_faceswap, swap_all_faces,
             )
             for vendor in vendors
         ]
